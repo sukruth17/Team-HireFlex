@@ -17,11 +17,11 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from novathon import views
-
+from novathon.views import get_file_text
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('search_case_files/', views.search_case_files_view, name='search_case_files'),
-    
+    path('get-file-text/<str:case_id>/', get_file_text, name='get_file_text'),
 ]
 
 # Usage example:

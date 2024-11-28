@@ -1,12 +1,14 @@
+import os
+from PyPDF2 import PdfReader
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
 from .case_searcher import CaseFileSearcher  # Assuming your provided code is saved as case_searcher.py in the same app directory
-
+from django.shortcuts import get_object_or_404
 from django.core.exceptions import ObjectDoesNotExist
 from .models import RenamedCaseFile  # Make sure the model is imported
-
+from .llllmware import interact_with_model
 @csrf_exempt
 def search_case_files_view(request):
     # Initialize the searcher
@@ -69,4 +71,40 @@ def search_case_files_view(request):
     # Return the enriched results as JSON
     return JsonResponse({'results': enriched_results}, safe=False)
 
+def extract_text_from_pdf(file_path):
+    """
+    Extract text from a PDF file.
+    """
+    if not os.path.exists(file_path):
+        return None, f"File not found: {file_path}"
+    
+    try:
+        reader = PdfReader(file_path)
+        text = ""
+        for page in reader.pages:
+            text += page.extract_text()  # Extract text from each page
+        return text.strip(), None
+    except Exception as e:
+        return None, str(e)
 
+def get_file_text(request, case_id):
+    """
+    View to get the file_path for a given case_id, extract text from PDF, and return the result.
+    """
+    # Get the RenamedCaseFile object or return 404
+    renamed_case_file = get_object_or_404(RenamedCaseFile, case_id=case_id)
+    
+    # Extract file_path from the model
+    file_path = renamed_case_file.file_path
+    
+    # Extract text from the file
+    extracted_text, error = extract_text_from_pdf(file_path)
+    summarizer=interact_with_model(context=extracted_text)
+    if error:
+        return JsonResponse({"error": error}, status=400)
+    
+    return JsonResponse({
+        "case_id": case_id,
+        "file_path": file_path,
+        "extracted_text": summarizer
+    })
