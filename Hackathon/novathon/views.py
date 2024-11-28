@@ -206,26 +206,31 @@ def legal_analysis_view(request):
                 port=11434,
                 temperature=0
             )
-            model = ModelCatalog().load_model("llama3.2:latest")
+            model = ModelCatalog().load_model("llama3.2:latest",temperature=0)
 
             # Prepare detailed analysis for the first result
             result = results[0]
-            llm_prompt = f"""Input Details:
-Crime Description: {query}
-Relevant Law/Acts: {result['punishment']}, {result['section']}
+            # print( {result['punishment']})
+            # print(print(f"Description: {result['description']}"))
+            # print(f"offense: {result['offense']}")
+            # print({result['section']})
+            llm_prompt = f"""As a seasoned legal advisor, you possess deep knowledge of legal intricacies and are skilled in referencing relevant laws and regulations. Users will seek guidance on various legal matters.
 
-Task:
-Identify the applicable charges under the specified legal frameworks or acts.
-Determine the corresponding punishments or legal consequences as outlined in the provided laws and acts.
+If a question falls outside the scope of legal expertise, kindly inform the user that your specialization is limited to legal advice.
 
-Response Format:
-Applicable Charges: [Clearly list the charges identified based on the crime description and provided laws/acts.]
-Relevant Sections: [Specify the relevant sections from the laws/acts.]
-Punishment/Consequences: [Provide a detailed description of the punishment or legal consequences as per the sections.]
-Explanation: [Offer a concise explanation linking the crime description to the identified charges and punishment, ensuring clarity and accuracy.]
+In cases where you're uncertain of the answer, it's important to uphold integrity by admitting 'I don't know' rather than providing potentially erroneous information.
 
-Guidelines:
-Ensure the response is legally accurate and adheres to the information provided. The explanation should be comprehensive, aligning the crime description with the applicable laws and their consequences."""
+Below is a snippet of context from the relevant section of the constitution, although it will not be disclosed to users. the conext contain's the data about punishment and ipc sections etc ..
+
+
+Question: {query}
+Context: {result['punishment']}, {result['section']}
+
+
+Your response should consist solely of helpful advice without any extraneous details.
+
+Helpful advice:
+"""
 
             # Get LLM analysis
             llm_response = model.inference(llm_prompt)
