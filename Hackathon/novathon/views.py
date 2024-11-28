@@ -1,15 +1,18 @@
-import os
+from django.views import View
+import os,json,ollama
 from PyPDF2 import PdfReader
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-import json
+from pymilvus import connections, Collection
+from llmware.models import ModelCatalog
 from .case_searcher import CaseFileSearcher  # Assuming your provided code is saved as case_searcher.py in the same app directory
 from django.shortcuts import get_object_or_404
 from django.core.exceptions import ObjectDoesNotExist
 from .models import RenamedCaseFile  # Make sure the model is imported
 from .llllmware import interact_with_model
-@csrf_exempt
+from django.views.decorators.http import require_POST
+
 def search_case_files_view(request):
     # Initialize the searcher
     case_searcher = CaseFileSearcher()
@@ -108,3 +111,147 @@ def get_file_text(request, case_id):
         "file_path": file_path,
         "extracted_text": summarizer
     })
+
+
+
+
+
+class MilvusOllamaHandler:
+    def __init__(self, collection_name='ipc_sections', host='localhost', port='19530'):
+        connections.connect(host=host, port=port)
+        self.collection = Collection(collection_name)
+        self.collection.load()
+
+    def generate_embedding(self, text):
+        """Generate embedding using Ollama's mxbai-embed-large model"""
+        response = ollama.embeddings(
+            model='mxbai-embed-large',
+            prompt=text
+        )
+        return response['embedding']
+
+    def search_similar(self, query_text, top_k=5):
+        """Search for similar documents based on query"""
+        query_embedding = self.generate_embedding(query_text)
+
+        search_params = {
+            "metric_type": "L2",
+            "params": {"nprobe": 10}
+        }
+
+        results = self.collection.search(
+            data=[query_embedding],
+            anns_field="embedding",
+            param=search_params,
+            limit=top_k,
+            output_fields=["description", "offense", "punishment", "section"]
+        )
+
+        similar_docs = []
+        for hits in results:
+            for hit in hits:
+                similar_docs.append({
+                    "id": hit.id,
+                    "score": hit.distance,
+                    "description": hit.entity.get("description"),
+                    "offense": hit.entity.get("offense"),
+                    "punishment": hit.entity.get("punishment"),
+                    "section": hit.entity.get("section")
+                })
+
+        return similar_docs
+
+    def close(self):
+        """Close Milvus connection"""
+        connections.disconnect("default")
+
+@csrf_exempt
+@require_POST
+def legal_analysis_view(request):
+    """
+    Django view to perform legal analysis based on crime description
+    
+    Expected JSON payload:
+    {
+        "query": "crime description here"
+    }
+    """
+    try:
+        # Parse request body
+        data = json.loads(request.body)
+        query = data.get('query', '')
+
+        if not query:
+            return JsonResponse({
+                'error': 'No query provided'
+            }, status=400)
+
+        # Initialize Milvus-Ollama handler
+        handler = MilvusOllamaHandler()
+
+        try:
+            # Search for similar legal documents
+            results = handler.search_similar(query)
+
+            if not results:
+                return JsonResponse({
+                    'error': 'No similar legal documents found'
+                }, status=404)
+
+            # Register and load Ollama model
+            ModelCatalog().register_ollama_model(
+                model_name="llama3.2:latest",
+                model_type="chat",
+                host="localhost",
+                port=11434,
+                temperature=0
+            )
+            model = ModelCatalog().load_model("llama3.2:latest")
+
+            # Prepare detailed analysis for the first result
+            result = results[0]
+            llm_prompt = f"""Input Details:
+Crime Description: {query}
+Relevant Law/Acts: {result['punishment']}, {result['section']}
+
+Task:
+Identify the applicable charges under the specified legal frameworks or acts.
+Determine the corresponding punishments or legal consequences as outlined in the provided laws and acts.
+
+Response Format:
+Applicable Charges: [Clearly list the charges identified based on the crime description and provided laws/acts.]
+Relevant Sections: [Specify the relevant sections from the laws/acts.]
+Punishment/Consequences: [Provide a detailed description of the punishment or legal consequences as per the sections.]
+Explanation: [Offer a concise explanation linking the crime description to the identified charges and punishment, ensuring clarity and accuracy.]
+
+Guidelines:
+Ensure the response is legally accurate and adheres to the information provided. The explanation should be comprehensive, aligning the crime description with the applicable laws and their consequences."""
+
+            # Get LLM analysis
+            llm_response = model.inference(llm_prompt)
+
+            # Close Milvus connection
+            handler.close()
+
+            # Prepare response
+            return JsonResponse({
+                'query': query,
+                'similar_documents': results,
+                'legal_analysis': llm_response
+            })
+
+        except Exception as search_error:
+            handler.close()
+            return JsonResponse({
+                'error': f'Error during search or analysis: {str(search_error)}'
+            }, status=500)
+
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'error': 'Invalid JSON in request body'
+        }, status=400)
+    except Exception as e:
+        return JsonResponse({
+            'error': f'Unexpected error: {str(e)}'
+        }, status=500)
+
