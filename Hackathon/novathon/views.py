@@ -12,7 +12,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from .models import RenamedCaseFile  # Make sure the model is imported
 from .llllmware import interact_with_model
 from django.views.decorators.http import require_POST
-
+@csrf_exempt
 def search_case_files_view(request):
     # Initialize the searcher
     case_searcher = CaseFileSearcher()
@@ -232,7 +232,7 @@ Your response should consist solely of helpful advice without any extraneous det
 Helpful advice:
 """
 
-            # Get LLM analysis
+            # LLMWARE 
             llm_response = model.inference(llm_prompt)
 
             # Close Milvus connection
