@@ -16,7 +16,17 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
+from novathon import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('search_case_files/', views.search_case_files_view, name='search_case_files'),
 ]
+
+# Usage example:
+# You could add this view to your urls.py as follows:
+# from django.urls import path
+# from . import views
+# urlpatterns = [
+#     
+# ]
