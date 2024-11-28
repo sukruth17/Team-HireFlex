@@ -21,6 +21,7 @@ from novathon import views
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('search_case_files/', views.search_case_files_view, name='search_case_files'),
+    
 ]
 
 # Usage example:

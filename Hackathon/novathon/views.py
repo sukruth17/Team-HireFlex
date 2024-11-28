@@ -4,6 +4,9 @@ from django.views.decorators.csrf import csrf_exempt
 import json
 from .case_searcher import CaseFileSearcher  # Assuming your provided code is saved as case_searcher.py in the same app directory
 
+from django.core.exceptions import ObjectDoesNotExist
+from .models import RenamedCaseFile  # Make sure the model is imported
+
 @csrf_exempt
 def search_case_files_view(request):
     # Initialize the searcher
@@ -51,6 +54,19 @@ def search_case_files_view(request):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
-    # Return the results as JSON
-    return JsonResponse({'results': results}, safe=False)
+    # Add file path to each result
+    enriched_results = []
+    for result in results:
+        case_file_id = result.get('case_file_id')
+        try:
+            renamed_case_file = RenamedCaseFile.objects.get(case_id=case_file_id)
+            result['file_path'] = renamed_case_file.file_path
+        except ObjectDoesNotExist:
+            result['file_path'] = None  # If file path is not found, set it as None
+
+        enriched_results.append(result)
+
+    # Return the enriched results as JSON
+    return JsonResponse({'results': enriched_results}, safe=False)
+
 
