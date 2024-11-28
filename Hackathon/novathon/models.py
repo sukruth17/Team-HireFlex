@@ -7,3 +7,4 @@ class RenamedCaseFile(models.Model):
 
     def __str__(self):
         return f"Case {self.case_id}: {self.file_path}"
+

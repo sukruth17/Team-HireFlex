@@ -24,10 +24,3 @@ urlpatterns = [
     path('get-file-text/<str:case_id>/', get_file_text, name='get_file_text'),
 ]
 
-# Usage example:
-# You could add this view to your urls.py as follows:
-# from django.urls import path
-# from . import views
-# urlpatterns = [
-#     
-# ]

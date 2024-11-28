@@ -2,7 +2,7 @@
 
 from django.core.management.base import BaseCommand
 import os
-from novathon.models import RenamedCaseFile
+from novathon.models import CaseFile
 
 class Command(BaseCommand):
     help = 'Store renamed PDFs and their file paths into the database'
@@ -23,7 +23,7 @@ class Command(BaseCommand):
 
             try:
                 # Store the case_id and file_path in the database
-                RenamedCaseFile.objects.create(case_id=case_id, file_path=file_path)
+                CaseFile.objects.create(case_id=case_id, file_path=file_path)
                 self.stdout.write(self.style.SUCCESS(f'Stored {file_name} with case_id {case_id} and path {file_path}'))
             except Exception as e:
                 self.stdout.write(self.style.ERROR(f'Error processing {file_name}: {e}'))

@@ -54,6 +54,10 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'Hackathon.urls'
+import os
+
+MEDIA_URL = '/media/'  # URL prefix for serving media files
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')  # Physical directory to store files
 
 TEMPLATES = [
     {
