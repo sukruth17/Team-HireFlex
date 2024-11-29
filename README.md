@@ -21,16 +21,16 @@ python manage.py makemigrations
 python manage.py migrate
 python manage.py runserver
 ```
-##Usage
+Usage
 Open your browser and navigate to http://127.0.0.1:8000/ to access the application.
 Explore features like:
 
-**Crime data visualization
-**Legal consultation
+Crime data visualization
+Legal consultation
 
-##Project Structure
+Project Structure
 
-**legal_advisor: 
+legal_advisor: 
 Contains the integration with LLMWare for providing legal advice.
-**crime_data: 
+crime_data: 
 Handles crime data analysis and visualization features.
