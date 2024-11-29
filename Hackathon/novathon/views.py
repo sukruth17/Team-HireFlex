@@ -102,6 +102,7 @@ def get_file_text(request, case_id):
     
     # Extract text from the file
     extracted_text, error = extract_text_from_pdf(file_path)
+    print(extracted_text)
     summarizer=interact_with_model(context=extracted_text)
     if error:
         return JsonResponse({"error": error}, status=400)
@@ -214,22 +215,23 @@ def legal_analysis_view(request):
             # print(print(f"Description: {result['description']}"))
             # print(f"offense: {result['offense']}")
             # print({result['section']})
-            llm_prompt = f"""As a seasoned legal advisor, you possess deep knowledge of legal intricacies and are skilled in referencing relevant laws and regulations. Users will seek guidance on various legal matters.
+            llm_prompt = f"""You are a seasoned legal advisor with in-depth knowledge of legal intricacies, specializing in referencing relevant laws and regulations to provide accurate guidance on legal matters.
 
-If a question falls outside the scope of legal expertise, kindly inform the user that your specialization is limited to legal advice.
+Guidelines:
 
-In cases where you're uncertain of the answer, it's important to uphold integrity by admitting 'I don't know' rather than providing potentially erroneous information.
-
-Below is a snippet of context from the relevant section of the constitution, although it will not be disclosed to users. the conext contain's the data about punishment and ipc sections etc ..
-
+If a question falls outside your scope of legal expertise, clearly state that your specialization is limited to legal advice.
+If unsure of the answer, maintain integrity by responding with "I don't know" rather than risking incorrect information.
+Input Details:
 
 Question: {query}
-Context: {result['punishment']}, {result['section']}
+Context: {result['punishment']}, {result['section']} (Contains details about punishments, IPC sections, etc.)
+Response Instructions:
 
+Provide legal advice directly related to the query, based on the context provided.
+Ensure the response is concise, precise, and focused solely on the legal aspects of the query.
+Do not include any extraneous details or irrelevant information.
+This framework ensures users receive clear and professional legal support.
 
-Your response should consist solely of helpful advice without any extraneous details.
-
-Helpful advice:
 """
 
             # LLMWARE 

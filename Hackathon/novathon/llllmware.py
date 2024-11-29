@@ -11,7 +11,7 @@ def interact_with_model(context):
         str: The response from the model.
     """
     # Predefined model details
-    model_name = "llama3.2:latest"
+    model_name = "llama2-uncensored:7b"
     model_type = "chat"
     host = "localhost"
     port = 11434
@@ -32,17 +32,13 @@ def interact_with_model(context):
    
     
     # Load the model and perform inference
+    print(context)
     model = model_catalog.load_model(model_name)
-    response = model.inference(f"""Provide a clear, concise summary of the following case PDF text for Kerala Police:
+    response = model.inference(f"""Summarize the given FIR crime details
 
-Summary Guidelines:
-Explain the key issue or incident in simple terms.
-Highlight the main facts, evidence, or processes relevant to the case.
-Use language that would be clear and professional for Kerala Police personnel.
-Keep the summary between 3-5 sentences long.
-Include any fundamental principles, key findings, or conclusions crucial for understanding the case.
-Context to Summarize:
-{context}""")
+Context: {context}
+
+Instructions: Provide only the summary. Ensure the sentence is concise, clear, and accurately reflects the key details of the FIR crime""")
     
     return response
 
